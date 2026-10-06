@@ -32,7 +32,7 @@ async function queue() {
     total = Object.values(states).reduce((a, b) => a + b, 0);
   $("#main").innerHTML =
     heading(
-      "Every exception, accounted for.",
+      "Exception control",
       "Reconcile source records, investigate differences, and route decisions to an independent reviewer.",
       '<button id="refresh">Refresh queue</button>',
     ) +

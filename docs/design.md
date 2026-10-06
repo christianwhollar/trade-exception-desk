@@ -35,3 +35,7 @@ Store it as `SERVICE_KEYS_JSON` through your secret manager. Never reuse an alph
 The original compact reference implementation is documented in [design-v1.md](design-v1.md). Version 0.2 adds a complete browser workflow, operational state handling, larger experiments or failure studies, and reproducible release artifacts. Earlier studies remain in `reports/`; they have not been replaced with improved numbers under their original names.
 
 See [operations.md](operations.md) for setup and failure demonstrations and [verification.md](verification.md) for the exact validation scope.
+
+## Interface design
+
+Compact tabs, a continuous metrics strip, and dense tables for reviewing exceptions. This trading operations uses its own typography, spacing, navigation and component shapes. Fonts and icons are local system fonts and inline SVG, with no external asset requests. The interface supports narrow screens, visible keyboard focus, a skip link, and active navigation semantics.

@@ -3,22 +3,37 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#ffffff" />
     <title>Trade exception desk</title>
     <link rel="stylesheet" href="/assets/style.css" />
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header>
       <div class="brand">
-        <span class="mark">∷</span>
+        <span class="mark" aria-hidden="true"
+          ><svg
+            viewBox="0 0 40 40"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M6 10h25l-5-5M34 30H9l5 5M10 17v7m7-7v7m7-7v7m7-7v7"
+            /></svg
+        ></span>
         <div>
-          <strong>Trade exception desk</strong
-          ><small>Operations / review and reconciliation</small>
+          <strong>Trade exception desk</strong><small>Operations control</small>
         </div>
       </div>
       <div class="auth" id="auth"></div>
     </header>
     <nav id="nav" aria-label="Main navigation"></nav>
-    <main id="main"><div class="loading">Loading workspace…</div></main>
+    <main id="main" tabindex="-1">
+      <div class="loading">Loading workspace…</div>
+    </main>
     <div id="toast" role="status" hidden></div>
     <script src="/assets/common.js"></script>
     <script src="/assets/app.js"></script>

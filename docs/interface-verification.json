@@ -1,0 +1,170 @@
+{
+  "release": "0.2.1",
+  "scope": "Interface styling and navigation semantics; business logic unchanged",
+  "viewports": [
+    320,
+    390,
+    768,
+    1024,
+    1440
+  ],
+  "responsive_views": [
+    {
+      "project": "trade-exception-desk",
+      "width": 1440,
+      "tab": "queue",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1440,
+      "tab": "imports",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1440,
+      "tab": "pricing",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1440,
+      "tab": "audit",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1024,
+      "tab": "queue",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1024,
+      "tab": "imports",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1024,
+      "tab": "pricing",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 1024,
+      "tab": "audit",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 768,
+      "tab": "queue",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 768,
+      "tab": "imports",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 768,
+      "tab": "pricing",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 768,
+      "tab": "audit",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 390,
+      "tab": "queue",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 390,
+      "tab": "imports",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 390,
+      "tab": "pricing",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 390,
+      "tab": "audit",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 320,
+      "tab": "queue",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 320,
+      "tab": "imports",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 320,
+      "tab": "pricing",
+      "overflow": false,
+      "aria_current": true
+    },
+    {
+      "project": "trade-exception-desk",
+      "width": 320,
+      "tab": "audit",
+      "overflow": false,
+      "aria_current": true
+    }
+  ],
+  "workflow": {
+    "project": "trade-exception-desk",
+    "tabs": [
+      "queue",
+      "imports",
+      "pricing",
+      "audit"
+    ],
+    "workflow": "passed",
+    "javascript_errors": []
+  },
+  "javascript_syntax": "passed",
+  "keyboard_skip_link": "passed",
+  "screenshots": [
+    "screenshot.png",
+    "mobile.png"
+  ]
+}
