@@ -1,0 +1,22 @@
+{
+  "scope": "Synthetic feed, local SQLite, deterministic investigations; model calls disabled",
+  "input_booking_rows": 512,
+  "input_confirmation_rows": 511,
+  "matched_pairs": 170,
+  "exceptions": 341,
+  "quarantined": 1,
+  "concurrent_workers": 12,
+  "attempted_executions": 381,
+  "completed_once": 341,
+  "duplicate_execution_conflicts": 40,
+  "recovered_expired_leases": 12,
+  "stale_completions_rejected": 12,
+  "final_states": {
+    "approved": 50,
+    "awaiting_review": 291
+  },
+  "audit_events": 1086,
+  "audit_valid": true,
+  "restore_head_matches": true,
+  "wall_seconds": 0.6251765839988366
+}

@@ -3,7 +3,7 @@
 import json
 import os
 import httpx
-from typing import TypedDict
+from typing import TypedDict, Literal
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, ConfigDict, Field
 from .domain import Investigation, reconcile
@@ -12,10 +12,19 @@ from .domain import Investigation, reconcile
 class Narrative(BaseModel):
     model_config = ConfigDict(extra="forbid")
     summary: str = Field(max_length=2000)
-    evidence: list[str] = Field(max_length=2)
+    evidence: list[Literal["internal", "counterparty"]] = Field(min_length=1, max_length=2)
 
 
-def summarize(result):
+def service_key(tenant, service):
+    mapping = json.loads(os.getenv("SERVICE_KEYS_JSON", "{}"))
+    if tenant in mapping and service in mapping[tenant]:
+        return mapping[tenant][service]
+    if tenant and tenant == os.getenv("SERVICE_TENANT"):
+        return os.environ[service.upper() + "_API_KEY"]
+    raise KeyError("No service credential configured for this tenant")
+
+
+def summarize(result, tenant=None):
     result["stages"] = [
         {"role": "reconciler", "tool": "compare_records", "status": "complete"},
         {"role": "risk_checker", "tool": "cash_difference", "status": "complete"},
@@ -27,13 +36,32 @@ def summarize(result):
         if not result["differences"]
         else "Differences require review: " + ", ".join(d["field"] for d in result["differences"])
     )
+    evidence_url = os.getenv("EVIDENCE_URL")
+    if evidence_url:
+        try:
+            query = (
+                " ".join(d["field"] for d in result["differences"])
+                + " discrepancy independent review"
+            )
+            response = httpx.post(
+                evidence_url.rstrip("/") + "/search",
+                headers={"Authorization": "Bearer " + service_key(tenant, "evidence")},
+                json={"question": query, "method": "bm25", "limit": 2},
+                timeout=10,
+            )
+            response.raise_for_status()
+            result["policy_evidence"] = response.json()["hits"]
+            result["stages"].append({"role": "policy_retriever", "status": "complete"})
+        except (httpx.HTTPError, ValueError, KeyError):
+            result["policy_evidence"] = []
+            result["stages"].append({"role": "policy_retriever", "status": "unavailable"})
     endpoint = os.getenv("ROUTER_URL")
     if endpoint:
         try:
             with httpx.Client(timeout=35) as client:
                 response = client.post(
                     endpoint.rstrip("/") + "/v1/complete",
-                    headers={"Authorization": "Bearer " + os.environ["ROUTER_API_KEY"]},
+                    headers={"Authorization": "Bearer " + service_key(tenant, "router")},
                     json={
                         "prompt": "Return JSON with summary and evidence (only internal or counterparty). Explain these deterministic findings without proposing trades: "
                         + json.dumps(result),
@@ -42,6 +70,7 @@ def summarize(result):
                         "minimum_quality": 0.5,
                         "data_class": "confidential",
                         "response_format": "json",
+                        "output_schema": Narrative.model_json_schema(),
                     },
                 )
                 response.raise_for_status()
@@ -59,6 +88,7 @@ def summarize(result):
 class State(TypedDict):
     payload: dict
     report: dict
+    tenant: str | None
 
 
 def build_graph():
@@ -71,7 +101,7 @@ def build_graph():
         return {"report": reconcile(Investigation.model_validate(state["payload"]))}
 
     def annotate(state):
-        return {"report": summarize(dict(state["report"]))}
+        return {"report": summarize(dict(state["report"]), state.get("tenant"))}
 
     def gate(state):
         return {"report": {**state["report"], "requires_independent_review": True}}
@@ -91,14 +121,16 @@ def build_graph():
 GRAPH = build_graph()
 
 
-def investigate(payload):
-    return GRAPH.invoke({"payload": payload, "report": {}}, config={"recursion_limit": 6})["report"]
+def investigate(payload, tenant=None):
+    return GRAPH.invoke(
+        {"payload": payload, "report": {}, "tenant": tenant}, config={"recursion_limit": 6}
+    )["report"]
 
 
 def execute(store, tenant, case_id):
     payload, token = store.claim(tenant, case_id)
     try:
-        report = investigate(payload)
+        report = investigate(payload, tenant)
         store.finish(tenant, case_id, token, report)
     except Exception:
         store.finish(tenant, case_id, token, error=True)

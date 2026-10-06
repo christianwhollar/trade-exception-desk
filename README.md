@@ -2,83 +2,93 @@
 
 [![checks](https://github.com/christianwhollar/trade-exception-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/christianwhollar/trade-exception-desk/actions/workflows/ci.yml)
 
-Investigate mismatched trade records, explain the deterministic findings, and require an independent reviewer before closing a case. A LangGraph workflow coordinates validation, reconciliation, optional model commentary, and the review gate.
+An operations workbench for importing trade feeds, investigating disagreements, and recording an independent review. The browser shows both source records, deterministic cash differences, supporting policy passages, and the complete decision history.
 
-This is a runnable reference implementation using synthetic data. See [design notes](docs/design.md), [development provenance](DEVELOPMENT.md), and [verification](docs/verification.md).
+![Application screenshot](docs/screenshot.png)
 
-## Run locally
+## Start locally
 
-Python 3.12 is the tested runtime.
+Python 3.12 is the tested runtime. From this repository:
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -c constraints.txt -e '.[dev]'
-python -m trade_desk.demo
-pytest -q
+python -m trade_desk.serve --demo
 ```
 
-## What happens in the demo
+Open **http://127.0.0.1:8101**. Demo mode binds to loopback and exposes explicit analyst/reviewer identities for synthetic data. It is opt-in; use configured credentials for a hosted service. Interactive API documentation is at `/docs`.
 
-Two synthetic records disagree on quantity and settlement date. The service calculates a cash difference of -9,912.50 USD using decimal arithmetic, records the evidence, and sends the case to review. A different user rejects the proposed resolution pending counterparty confirmation. No order is sent anywhere.
+## Walk through a case
+
+1. Open **Feed ingestion**, load the example files, and import them. Schema errors and duplicate trade IDs reject the batch before writes. Missing counterparts are quarantined.
+2. Open an exception in **Exception queue**. Compare the booking and confirmation, then run its investigation.
+3. Add a note, owner, or priority. Updates use an expected version; a stale browser cannot silently overwrite another update.
+4. Switch the demo identity to **Alpha · reviewer** and record a decision. The case maker cannot approve their own case.
+5. Inspect **Audit trail** and export the tenant history. Try **Beta · analyst** to see tenant isolation.
+6. Use **Bond analytics** to inspect dated cash flows, clean/dirty price, accrued interest, DV01, duration, and yield shocks.
+
+## Engineering decisions
 
 ```mermaid
 flowchart LR
-    API[Authenticated API] --> DB[(Cases and leases)]
-    DB --> Validate[Validate records]
-    Validate --> Reconcile[Deterministic reconciliation]
-    Reconcile --> Narrative[Optional model commentary]
-    Narrative --> Gate[Independent review]
-    Gate --> Audit[Hash-linked audit events]
-    Audit -. optional digest checkpoint .-> EVM[Local EVM contract]
+  CSV[Validated feed pair] --> TX[Atomic import and idempotency]
+  TX --> Queue[SQLite durable queue]
+  Queue --> Lease[Token-fenced worker lease]
+  Lease --> Checks[Deterministic reconciliation]
+  Checks --> Policy[Optional policy retrieval]
+  Policy --> Draft[Optional model commentary]
+  Draft --> Review[Independent human review]
+  Review --> Audit[Hash-linked tenant audit]
 ```
 
-## API and worker
+Financial comparisons use decimal arithmetic. A language model may draft commentary but cannot change computed differences, approve a case, or execute a trade. The dated bond calculator explicitly separates its cash-flow conventions from the currency-per-unit trade reconciliation convention.
+
+Workers use 60-second leases, ownership tokens, and three attempts. A stale worker cannot finish a reclaimed case. Expired final-attempt leases become failed cases; an authorized reviewer can record a manual retry. Start the continuous worker with `--worker`.
+
+The reliability study imported **512 booking rows**, opened **341 exceptions**, raced **12 workers**, rejected **40 duplicate executions** and **12 stale completions**, and verified the restored database against the original audit head. These are controlled local measurements, not a cloud throughput claim.
 
 ```bash
-APP_DEMO=1 uvicorn trade_desk.api:app --host 127.0.0.1 --port 8101
-# In another terminal, process pending jobs once:
-python -m trade_desk.worker
+python -m trade_desk.reliability --output runtime/reliability.json
 ```
 
-Open `http://127.0.0.1:8101/docs`. Use bearer token `demo-analyst` to create or investigate cases and `demo-reviewer` to approve or reject them. These identities belong to tenant alpha; `demo-beta` belongs to a separate tenant. The sample request is in [examples/case.json](examples/case.json).
+[Recorded reliability study](reports/reliability-v2.json) · [Financial and lifecycle tests](tests/test_workbench.py)
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /cases` | Create a case with an `Idempotency-Key` header |
-| `POST /cases/{id}/investigate` | Claim a lease and execute the bounded workflow |
-| `POST /cases/{id}/decision` | Independent human approval or rejection |
-| `GET /audit` | Verify the tenant's event hash chain |
-| `POST /pricing/bond` | Price a synthetic annual-coupon bond and recover its yield |
-| `GET /metrics` | Authenticated Prometheus metrics |
+## Connect the other services
 
-The worker can be scheduled by a process supervisor. It polls a durable queue, retries failed work up to three attempts, and reaps expired final-attempt leases. API-driven execution and worker execution share the same lease checks.
-
-## Feed ingestion and proactive case creation
+Start the evidence workbench and a live inference router, then set:
 
 ```bash
-python -m trade_desk.ingest --internal examples/internal.csv \
-  --counterparty examples/counterparty.csv --tenant alpha
-python -m trade_desk.worker
+export SERVICE_TENANT=alpha
+export EVIDENCE_URL=http://127.0.0.1:8102
+export EVIDENCE_API_KEY=demo-analyst
+export ROUTER_URL=http://127.0.0.1:8104
+export ROUTER_API_KEY=demo-analyst
+python -m trade_desk.serve --demo --worker
 ```
 
-The importer validates both CSV feeds, skips matched pairs, opens discrepancies using content-derived idempotency keys, and quarantines unpaired records. Replaying unchanged feeds cannot create duplicate cases. This is a trusted local batch integration; the tenant flag is an operator setting, not an unauthenticated API override.
+With the three demo services running and connected, `python scripts/check_connected.py` exercises ingestion, generation, investigation, review and access revocation using a synthetic case. It writes a verification report under `runtime/`.
 
-## Optional model commentary
+The report preserves retrieved document/revision IDs. Model output must satisfy a JSON schema and cite the two source record names. If optional services fail, the deterministic investigation still completes with an explicit fallback marker. Commentary remains unverified prose for the reviewer.
 
-Start [inference-router](https://github.com/christianwhollar/inference-router) with a real configured model, then set `ROUTER_URL` and `ROUTER_API_KEY` before starting this service. Commentary must satisfy a JSON schema and cite only the two supplied records. Failure falls back to the deterministic explanation. Model text cannot alter arithmetic, case status, or the approval gate. Valid citation identifiers do not establish factual entailment; a reviewer still checks the commentary.
+## Deployment and boundaries
 
-## Containers and audit contract
+`docker compose up --build` starts the local seeded application on loopback. The image runs as UID 10001. Hosted deployments should run the unseeded `trade_desk.api:app`, configure real API keys, terminate TLS, and persist `/data`. This SQLite design targets one host; it is not a distributed trading engine.
+
+Audit hashes detect edits against a retained chain. An externally retained head or trusted on-chain checkpoint is required to detect total rewrites or tail truncation. The optional Solidity `AuditAnchor` contract has local-EVM tests for ownership and monotonic checkpoints; no public chain deployment is claimed.
+
+Bond pricing uses regular maturity-anchored coupons, ACT/365F discount times, nominal periodic yield and ACT/ACT coupon accrual. It does not implement holiday calendars, irregular stubs, accrued-interest market conventions for every security, or execution-quality pricing.
+
+
+The live three-service verification passed with actual Ollama responses, authorized policy retrieval, independent review enforcement and settled usage reservations. [Recorded connected workflow](reports/integration-v2.json).
+
+## Validation and project notes
 
 ```bash
-docker compose up --build
-pip install -e '.[chain]'
-python -c 'import solcx; solcx.install_solc("0.8.30")'
-RUN_CHAIN_TESTS=1 pytest tests/test_contract.py -q
+pytest -q
+ruff check src tests scripts
 ```
 
-The contract test compiles Solidity and deploys to an in-memory test chain. It checks owner-only anchoring, monotonic sequence numbers, and rejection of empty digests. It never uses a wallet or public blockchain.
+[Architecture and decisions](docs/design.md) · [Operating guide](docs/operations.md) · [Verification record](docs/verification.md) · [Development provenance](DEVELOPMENT.md)
 
-## Boundaries
-
-SQLite supports a single-node reference deployment, not a multi-region trading system. The audit chain detects changed events when its trusted head is available; a database administrator could rewrite the entire chain or truncate it. External checkpoints help establish a trusted head, but the contract is an optional component and is not automatically wired into the case API. Bond conventions intentionally omit calendars, accrued interest, and day-count rules. There is no real-money execution or claim of regulatory certification.
+This is a finished local portfolio application with reproducible experiments and recorded limitations. It does not claim prior production deployment or substitute for operating experience.
