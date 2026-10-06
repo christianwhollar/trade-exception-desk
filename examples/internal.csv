@@ -1,0 +1,4 @@
+trade_id,instrument,quantity,price,settlement,currency
+T-1042,SYNTH-BOND-5Y,1000,99.125,2026-10-08,USD
+T-1043,SYNTH-NOTE,200,101.25,2026-10-08,USD
+T-1044,SYNTH-NOTE,500,98.25,2026-10-08,USD

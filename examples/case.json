@@ -1,0 +1,18 @@
+{
+  "internal": {
+    "trade_id": "T-1042",
+    "instrument": "SYNTH-BOND-5Y",
+    "quantity": "1000",
+    "price": "99.125",
+    "settlement": "2026-10-08",
+    "currency": "USD"
+  },
+  "counterparty": {
+    "trade_id": "T-1042",
+    "instrument": "SYNTH-BOND-5Y",
+    "quantity": "1100",
+    "price": "99.125",
+    "settlement": "2026-10-09",
+    "currency": "USD"
+  }
+}

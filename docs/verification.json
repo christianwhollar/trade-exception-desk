@@ -1,0 +1,21 @@
+{
+  "verified_at_utc": "2026-10-06T01:19:02.028395+00:00",
+  "python": "3.12",
+  "project_tests_passed": 14,
+  "aggregate_tests_passed": 45,
+  "aggregate_skipped": 0,
+  "lint": "passed",
+  "local_command": "pytest tests -q (with optional local integrations enabled as described in README)",
+  "ci_note": "GitHub Actions runs portable tests; local optional integrations were separately exercised.",
+  "container": {
+    "status": "passed",
+    "image": "portfolio-trade-desk:local",
+    "health": {
+      "status": "ok"
+    },
+    "openapi_paths": 7,
+    "container_uid": "10001"
+  },
+  "solidity": "Solc 0.8.30 compiled and deployed into EthereumTester; ownership, monotonic sequence and digest tests passed.",
+  "model_commentary": "The connected run used deterministic fallback when model commentary failed validation. Trade arithmetic and review gates remained intact."
+}
